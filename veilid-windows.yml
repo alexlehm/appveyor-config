@@ -1,0 +1,92 @@
+version: 1.0.{build}
+image: Visual Studio 2022
+install:
+- ps: >-
+    choco install rustup.install --no-progress
+
+    $Env:PATH = "C:\Users\appveyor\.cargo\bin;$Env:PATH"
+
+
+    choco install capnproto --no-progress
+
+    choco install protoc --no-progress
+
+
+    $Env:PYTHON = "C:\Python312"
+
+    $Env:PATH = "$Env:PYTHON;$Env:PYTHON\Scripts;$Env:PATH"
+
+
+    python --version
+
+    python -m pip install --upgrade pip
+
+
+    pip install --upgrade cloudsmith-cli
+
+
+    $b64 = @"
+
+    kKysSxw47lodPin7cbczFrqOCQ3ea99JHEZy/l2OfCzU0FwRH/StdZqbBef7AoNF852vKQqOoVO6
+
+    Ikuf7SGzkQ==
+
+    "@
+
+
+    $filename = 'credentials.ini'
+
+    $fileenc = $filename+'enc'
+
+
+    $data=[System.Convert]::FromBase64String($b64)
+
+    Set-Content -Path $fileenc -Value $data -Encoding Byte
+
+
+    # appveyor secure-file
+
+    $tempdir = Join-Path $([System.IO.Path]::GetTempPath()) $([System.Guid]::NewGuid())
+
+    New-Item -ItemType Directory -Path $tempdir
+
+    $zipPath = Join-Path $tempdir 'secure-file.zip'
+
+    [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
+
+    (New-Object Net.WebClient).DownloadFile('https://github.com/appveyor/secure-file/releases/download/1.0.1/secure-file.zip', $zipPath)
+
+    Expand-Archive $zipPath -DestinationPath (Join-Path (pwd).path "appveyor-tools") -Force
+
+
+    appveyor-tools\secure-file -decrypt $fileenc -secret $Env:my_secret -salt $Env:my_salt -out $filename
+
+
+    # show current dir list, we should have everything
+
+    Get-ChildItem "."
+build_script:
+- ps: >-
+    cargo build --release
+
+    cargo report future-incompatibilities --id 1
+
+    7z a veilid-windows-x64.zip target\release\*.exe
+test_script:
+- ps: >-
+    cargo test
+
+    write-output "ignoring the test results for now"deploy_script:
+- ps: >-
+    $File="veilid-windows-x64.zip"
+
+    # figure out tag or commitid
+
+    if($Env:APPVEYOR_REPO_TAG -eq "true"){
+      $version=$Env:APPVEYOR_REPO_TAG_NAME;
+    } else {
+      $version=$Env:APPVEYOR_REPO_BRANCH+":"+$Env:APPVEYOR_REPO_COMMIT;
+    }
+
+    cloudsmith push raw alexlehm-open-source-builds/veilid-builds $File --version $version --summary "veilid windows build " --description "commitid=$Env:APPVEYOR_REPO_COMMIT buildid=$Env:APPVEYOR_BUILD_VERSION tag=$Env:APPVEYOR_REPO_TAG_NAME"
+
