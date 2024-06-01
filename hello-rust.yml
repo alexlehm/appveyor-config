@@ -88,4 +88,6 @@ deploy_script:
     }
 
 
-    cloudsmith push raw alexlehm-open-source-builds/test-repo $File --version $version --summary "veilid windows build " --description "commitid=$Env:APPVEYOR_REPO_COMMIT buildid=$Env:APPVEYOR_BUILD_VERSION tag=$Env:APPVEYOR_REPO_TAG_NAME"
+    # cloudsmith push maven alexlehm-open-source-builds/test-repo $File --version $version --summary "veilid windows build " --description "commitid=$Env:APPVEYOR_REPO_COMMIT buildid=$Env:APPVEYOR_BUILD_VERSION tag=$Env:APPVEYOR_REPO_TAG_NAME"
+
+    cloudsmith push maven alexlehm-open-source-builds/test-repo $File --artifact-id hello-windows-x64 --group-id cx.lehmann.veilid --version $version

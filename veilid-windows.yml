@@ -76,7 +76,8 @@ test_script:
 - ps: >-
     cargo test
 
-    write-output "ignoring the test results for now"deploy_script:
+    write-output "ignoring the test results for now"
+deploy_script:
 - ps: >-
     $File="veilid-windows-x64.zip"
 
@@ -85,8 +86,12 @@ test_script:
     if($Env:APPVEYOR_REPO_TAG -eq "true"){
       $version=$Env:APPVEYOR_REPO_TAG_NAME;
     } else {
-      $version=$Env:APPVEYOR_REPO_BRANCH+":"+$Env:APPVEYOR_REPO_COMMIT;
+      if($Env:versionTag -eq $null) {
+        $version=$Env:APPVEYOR_REPO_BRANCH+":"+$Env:APPVEYOR_REPO_COMMIT;
+      } else {
+        $version=$Env:versionTag;
+      }
     }
 
-    cloudsmith push raw alexlehm-open-source-builds/veilid-builds $File --version $version --summary "veilid windows build " --description "commitid=$Env:APPVEYOR_REPO_COMMIT buildid=$Env:APPVEYOR_BUILD_VERSION tag=$Env:APPVEYOR_REPO_TAG_NAME"
+    cloudsmith push maven alexlehm-open-source-builds/veilid-builds "$File" --artifact-id veilid-windows-x64 --group-id cx.lehmann.veilid --version "$version" --packaging zip
 
